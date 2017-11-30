@@ -6,9 +6,9 @@ from upm import pyupm_jhd1313m1
 display = pyupm_jhd1313m1.Jhd1313m1(0,0x3E, 0x62)
 photo = pyupm_grove.GroveLight(0)
 th02 = pyupm_th02.TH02(6,0x40)
-pir = mraa.Gpio(2)
+pir = mraa.Gpio(7)
 ledtest = mraa.Gpio(13)
-buzzer = mraa.Gpio(6)
+buzzer = mraa.Gpio(2)
 
 pir.dir(mraa.DIR_IN)
 ledtest.dir(mraa.DIR_OUT)
@@ -27,8 +27,8 @@ time.sleep(3)
 
 while True:
 
-    temperature = th02.getTemperature()
-    humidity = th02.getHumidity()
+    temperature = round(th02.getTemperature(),2)
+    humidity = round(th02.getHumidity(),2)
     light = photo.raw_value()
 
     if pir.read() == 1:
@@ -40,15 +40,29 @@ while True:
     print 'Event: ' + str(event) + ' x'
     
     display.setCursor(0,0)
-    display.write('Temp: ' + str(temperature))
+    display.write('Temp: ' + str(temperature) + ' C     ')
     display.setCursor(1,0)
-    display.write('Humi: ' + str(humidity))
+    display.write('Humi: ' + str(humidity) + ' %     ')
 
     try:
-        r = requests.post('http://172.31.112.199/laboratorio/alta.php', data={'var1':temperature,'var2':humidity,'var3':light,'var4':event},timeout=1 )
-        error = 0
-    except:
-        print ('error conexion')
+        r = requests.post('your URL, your data')
+
+        if (r.ok == 1):
+            error = 0            
+        else:
+            error = 1
+        
+        print(r.ok)
+        print(r.status_code)
+
+    except requests.exceptions.ReadTimeout as RT:
+        print('error de time out 78787')
+        print(RT)
+        error = 2
+
+    except requests.exceptions.RequestException as e:
+        print(e)
+        print ('error RequestException AB')
         error = 1
 
     if error == 1:
@@ -56,6 +70,8 @@ while True:
         buzzer.write(1)
         time.sleep(.1)
         buzzer.write(0)
+    elif error == 2:
+        display.setColor(255,255,0)
     else:
         display.setColor(0,255,0)
         ledtest.write(1)
@@ -63,4 +79,5 @@ while True:
         ledtest.write(0)
 
     time.sleep(9.9)
+    time.sleep(0.9)
     print('Completed')
